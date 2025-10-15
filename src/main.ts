@@ -23,7 +23,7 @@ async function bootstrap(options?: { listen?: boolean }): Promise<Express> {
   );
 
   app.enableCors({
-    origin: configService.get('client.url'),
+    origin: '*',
     methods: ['GET', 'DELETE', 'POST', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
