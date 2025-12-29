@@ -52,7 +52,7 @@ export class UserController {
   @Post('logout')
   @HttpCode(204)
   public logout(@Res({ passthrough: true }) res: Response): void {
-    res.clearCookie('auth_token', { path: '/' });
+    res.clearCookie('auth_token');
   }
 
   @Get()
@@ -81,7 +81,7 @@ export class UserController {
     res.cookie('auth_token', token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'strict' : 'lax',
+      sameSite: isProd ? 'none' : 'lax',
       path: '/',
     });
   }
