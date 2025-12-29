@@ -26,7 +26,7 @@ export class AwsService implements FileStorageProvider {
   }
 
   public async upload(file: Express.Multer.File): Promise<string> {
-    const key = `etecfy/${Date.now()}-${file.originalname}`;
+    const key = `etecfy/${Date.now()}-${encodeURIComponent(file.originalname)}`;
     await this.s3.send(
       new PutObjectCommand({
         Bucket: this.bucket,
@@ -35,9 +35,7 @@ export class AwsService implements FileStorageProvider {
         ContentType: file.mimetype,
       }),
     );
-    return encodeURIComponent(
-      `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`,
-    );
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
   }
 
   public async delete(url: string): Promise<void> {
