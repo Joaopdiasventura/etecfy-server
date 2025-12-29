@@ -49,6 +49,12 @@ export class UserController {
     return user;
   }
 
+  @Post('logout')
+  @HttpCode(204)
+  public logout(@Res({ passthrough: true }) res: Response): void {
+    res.clearCookie('auth_token', { path: '/' });
+  }
+
   @Get()
   public decodeToken(@Req() { cookies }: AuthRequest): Promise<User> {
     return this.userService.decodeToken(cookies.auth_token || '');
