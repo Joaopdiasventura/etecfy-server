@@ -1,10 +1,10 @@
-# fly.toml app configuration file generated for etecfy-joaopdias on 2026-01-11T08:03:53Z
+# fly.toml app configuration file generated for etecfy-server on 2026-01-11T08:17:34Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'etecfy-joaopdias'
-primary_region = 'gru'
+app = 'etecfy-server'
+primary_region = 'iad'
 
 [build]
 
