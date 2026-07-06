@@ -96,16 +96,13 @@ jobs:
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       - name: Pull images
-        run: |
-          docker pull "$IMAGE_NAME@${{ needs.docker_push.outputs.image_digest }}"
-          docker pull "$CLOUDFLARED_IMAGE"
+        run: docker pull "$IMAGE_NAME@${{ needs.docker_push.outputs.image_digest }}"
 
       - name: Deploy server container
         run: |
           docker rm -f etecfy-server || true
           docker run -d \
             --name etecfy-server \
-            -p 3000:3000 \
             --restart=always \
             --env-file .env \
             --security-opt no-new-privileges:true \
