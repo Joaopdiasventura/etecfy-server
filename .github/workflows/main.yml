@@ -72,8 +72,11 @@ jobs:
         id: build
         uses: docker/build-push-action@v6
         with:
+          context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha,scope=etecfy-server
+          cache-to: type=gha,mode=max,scope=etecfy-server
 
   deploy:
     if: github.ref == 'refs/heads/main'
