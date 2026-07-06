@@ -104,6 +104,7 @@ jobs:
           docker run -d \
             --name etecfy-server \
             --restart=always \
+            --network cloudflare_tunnel \
             --env-file .env \
             --security-opt no-new-privileges:true \
             --cap-drop ALL \
