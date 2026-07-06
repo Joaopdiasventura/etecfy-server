@@ -118,4 +118,4 @@ jobs:
             "$IMAGE_NAME@${{ needs.docker_push.outputs.image_digest }}"
 
       - name: Remove unused images
-        run: docker image prune -f
+        run: docker image prune -f -a
