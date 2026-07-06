@@ -1,0 +1,120 @@
+name: Continuous Integration and Deployment
+
+on:
+  push:
+    branches:
+      - '**'
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: docker.io/jpplay/etecfy-server
+  NODE_VERSION: 24.x
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Build
+        run: yarn build
+
+  docker_push:
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      image_digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
+            type=sha,format=long
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+    needs: docker_push
+    timeout-minutes: 15
+    env:
+      DOTENV: ${{ secrets.DOTENV }}
+      CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Write dotenv to file
+        run: |
+          printf '%s\n' "$DOTENV" > .env
+          chmod 600 .env
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Pull images
+        run: |
+          docker pull "$IMAGE_NAME@${{ needs.docker_push.outputs.image_digest }}"
+          docker pull "$CLOUDFLARED_IMAGE"
+
+      - name: Deploy server container
+        run: |
+          docker rm -f etecfy-server || true
+          docker run -d \
+            --name etecfy-server \
+            -p 3000:3000 \
+            --restart=always \
+            --env-file .env \
+            --security-opt no-new-privileges:true \
+            --cap-drop ALL \
+            --memory=512m \
+            --memory-swap=512m \
+            --cpus=1.0 \
+            --pids-limit=256 \
+            "$IMAGE_NAME@${{ needs.docker_push.outputs.image_digest }}"
+
+      - name: Remove unused images
+        run: docker image prune -f
